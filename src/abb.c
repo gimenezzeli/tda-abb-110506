@@ -168,9 +168,9 @@ void destruir_todo_rec(nodo_abb_t *raiz, void (*destructor)(void *)){
 	if(!raiz)
 		return;
 	
-	if (destructor){
+	if(destructor!=NULL)
 		destructor(raiz->elemento);
-	}
+
 	destruir_todo_rec(raiz->derecha, destructor);
 	destruir_todo_rec(raiz->izquierda, destructor);
 	free(raiz);
@@ -179,11 +179,10 @@ void destruir_todo_rec(nodo_abb_t *raiz, void (*destructor)(void *)){
 void abb_destruir(abb_t *arbol){
 	if (!arbol) 
 		return;
-	abb_destruir_todo(arbol, NULL);
+	destruir_todo_rec(arbol->nodo_raiz, NULL);
 	free(arbol);
 }
 
-//FALTA
 void abb_destruir_todo(abb_t *arbol, void (*destructor)(void *)){
 	if(!arbol)
 		return;
@@ -192,7 +191,8 @@ void abb_destruir_todo(abb_t *arbol, void (*destructor)(void *)){
 	free(arbol);
 }
 
-size_t recorrer_preorden(nodo_abb_t *raiz, void **array, size_t tamanio_array, size_t *contador){
+size_t recorrer_preorden(nodo_abb_t *raiz, void **array, size_t tamanio_array, 
+							size_t *contador){
 	if(!raiz || *contador>=tamanio_array)
 		return *contador;
 	
@@ -204,7 +204,8 @@ size_t recorrer_preorden(nodo_abb_t *raiz, void **array, size_t tamanio_array, s
 	return *contador;
 }
 
-size_t recorrer_inorden(nodo_abb_t *raiz, void **array, size_t tamanio_array, size_t *contador){
+size_t recorrer_inorden(nodo_abb_t *raiz, void **array, size_t tamanio_array, 
+						size_t *contador){
 	if(!raiz || *contador>=tamanio_array)
 		return *contador;
 	
@@ -216,7 +217,8 @@ size_t recorrer_inorden(nodo_abb_t *raiz, void **array, size_t tamanio_array, si
 	return *contador;
 }
 
-size_t recorrer_postorden(nodo_abb_t *raiz, void **array, size_t tamanio_array, size_t *contador){
+size_t recorrer_postorden(nodo_abb_t *raiz, void **array, size_t tamanio_array, 
+							size_t *contador){
 	if(!raiz || *contador>=tamanio_array)
 		return *contador;
 	
@@ -229,15 +231,74 @@ size_t recorrer_postorden(nodo_abb_t *raiz, void **array, size_t tamanio_array, 
 	return *contador;
 }
 
+size_t recorrer_preorden_elementos(nodo_abb_t *raiz, bool(*funcion)(void *, void *), 
+									void *aux, size_t *contador, bool *continuar_recorriendo){
+	if(!raiz || !continuar_recorriendo)
+		return *contador;
+	
+	if(!funcion(raiz->elemento, aux))
+		continuar_recorriendo = false;
+
+	*contador = recorrer_preorden_elementos(raiz->izquierda, funcion, aux, contador, continuar_recorriendo);
+	*contador = recorrer_preorden_elementos(raiz->derecha, funcion, aux, contador, continuar_recorriendo);
+	
+	(*contador)++;
+	return *contador;
+}
+
+size_t recorrer_inorden_elementos(nodo_abb_t *raiz, bool(*funcion)(void *, void *), 
+									void *aux, size_t *contador, bool *continuar_recorriendo){
+	if(!raiz || !continuar_recorriendo)
+		return *contador;
+	
+	*contador = recorrer_inorden_elementos(raiz->izquierda, funcion, aux, contador, continuar_recorriendo);
+
+	if(!funcion(raiz->elemento, aux))
+		continuar_recorriendo = false;
+	*contador = recorrer_inorden_elementos(raiz->derecha, funcion, aux, contador, continuar_recorriendo);
+
+	(*contador)++;
+	return *contador;
+}
+
+size_t recorrer_postorden_elementos(nodo_abb_t *raiz, bool(*funcion)(void *, void *), 
+									void *aux, size_t *contador, bool *continuar_recorriendo){
+	if(!raiz || !continuar_recorriendo)
+		return *contador;
+	
+	*contador = recorrer_postorden_elementos(raiz->izquierda, funcion, aux, contador, continuar_recorriendo);
+	*contador = recorrer_postorden_elementos(raiz->derecha, funcion, aux, contador, continuar_recorriendo);
+
+	if(!funcion(raiz->elemento, aux)){
+		continuar_recorriendo = false;
+	}
+		
+	(*contador)++;
+	return *contador;
+}
+
 //FALTA
 size_t abb_con_cada_elemento(abb_t *arbol, abb_recorrido recorrido,
 			     bool (*funcion)(void *, void *), void *aux){
-	if(!arbol)
+	if(!arbol || !funcion)
 		return 0;
 	
-	int contador = 0;
+	size_t contador = 0;
+	bool continuar_recorriendo = true;
+	switch(recorrido){
+		case PREORDEN:
+			contador = recorrer_preorden_elementos(arbol->nodo_raiz, funcion, aux, &contador, &continuar_recorriendo);
+			break;
+	 	case INORDEN:
+			contador = recorrer_inorden_elementos(arbol->nodo_raiz, funcion, aux, &contador, &continuar_recorriendo);
+			break;
+		case POSTORDEN:
+			contador = recorrer_postorden_elementos(arbol->nodo_raiz, funcion, aux, &contador, &continuar_recorriendo);
+			break;
+		default:
+			break;
+	}
 	
-
 	return contador;
 }
 
